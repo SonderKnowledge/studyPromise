@@ -145,3 +145,92 @@ Promise.resolve()
    因为返回任意一个非 promise的值都会被包裹成promise对象，即 return new Error('error!!')
    等价于 return Promise.resolve(new Error('error!!'))
  */
+
+
+//  题目七
+const promise6 = Promise.resolve()
+  .then(() => {
+    return promise6
+  })
+promise6.catch(console.error)
+/**
+ * 运行结果
+ * TypeError: Chaining cycle detected for promise #<Promise>
+    at <anonymous>
+    at process._tickCallback (internal/process/next_tick.js:188:7)
+    at Function.Module.runMain (module.js:667:11)
+    at startup (bootstrap_node.js:201:16)
+    at bootstrap_node.js:626:3 
+   解释 .then 或者 .catch 返回的值不能是promise本身否则会造成死循环。类似于：
+    process.nextTick(function tick(){
+      console.log('tick')
+      process.nextTick(tick)
+    })
+ */
+
+
+// 题目八
+Promise.resolve(1)
+  .then(2)
+  .then(Promise.resolve(3))
+  .then(console.log)
+/**
+ * 运行结果 1
+ * 解释 .then 或者 .catch 的参数期望是函数,传入非函数则会发生值穿透
+ */
+
+
+//  题目九
+Promise.resolve()
+  .then(function success (res) {
+    throw new Error('error')
+  }, function fail (e) {
+    console.log('fail: ', e)
+  })
+  .catch(function fail2 (e) {
+    console.log('fail2: ', e)
+  })
+/**
+ * 运行结果 
+ * fail2: Error: error
+    at success (...)
+    at ...
+   解释 .then 可以接收两个参数，第一个是处理成功的函数第二个是处理错误的函数 .catch是 .then第二个参数的
+   简便写法，但是他们用法上有一点需要注意：.then 的第二个处理错误的函数捕获不了第一个处理成功的函数抛出的
+   错误，而后续的 .catch可以捕获之前的错误，下面代码也可以：
+   Promise.resolve()
+    .then(function sucess1 (res) {
+      throw new Error('error')
+    }, function fail (e) {
+      console.error('fail1: ', e)
+    })
+    .then(function success2 (res) {
+    }, function fail2 (e) {
+      console.error('fail2: ', e)
+    })
+ */
+
+
+// 题目十
+process.nextTick(() => {
+  console.log('nextTick')
+})
+Promise.resolve()
+  .then(() => {
+    console.log('then')
+  })
+setImmediate(() => {
+  console.log('setImmediate')
+})
+console.log('end')
+/**
+ * 运行结果
+ * end
+   nextTick
+   then
+   setImmediate
+   解释 
+   process.nextTick 和 promise.then 都属于 microtask，而 setImmediate 属于 macrotask，在事件循环的 
+   check 阶段执行。事件循环的每个阶段（macrotask）之间都会执行 microtask，事件循环的开始会先执行一次 microtask。
+ */
+  
